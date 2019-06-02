@@ -1,36 +1,45 @@
-#!/usr/bin/python
+"""
+This is the app main fil
+"""
+# !/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from wifi_server.access_point import AccessPoint
-from arduino_communication.serial_communication import ArduinoCommunication
-from imutils.video import WebcamVideoStream
-from PyQt5 import QtCore, QtWidgets, QtGui
-from functools import partial
-from collections import deque
-import pyqtgraph as pg
-import numpy as np
-import imutils
 import math
 import time
-import cv2
 import os
+from collections import deque
+from functools import partial
+import numpy as np
+
+import pyqtgraph as pg
+import imutils
+from imutils.video import WebcamVideoStream
+
+from PyQt5.QtCore import QSize, pyqtSignal, QTimer, Qt
+from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtWidgets import (QWidget, QLabel, QComboBox, QLineEdit, QPushButton,
+                             QSlider, QVBoxLayout, QHBoxLayout, QMessageBox)
+
+import cv2
+from wifi_server.access_point import AccessPoint
+from arduino_communication.serial_communication import ArduinoCommunication
 
 
-class MainApp(QtWidgets.QWidget):
+class MainApp(QWidget):
     """
     Initialize all constant variables
     """
     # Defining Wiget sizes
-    TEXT_SIZE = QtCore.QSize(35, 15)
-    SMALL_TEXT_SIZE = QtCore.QSize(26, 15)
-    LARGE_TEXT_SIZE = QtCore.QSize(85, 15)
-    IMAGE_SIZE = QtCore.QSize(450, 450)
-    VIDEO_SIZE = QtCore.QSize(450, 450)
-    GRAPH_SIZE = QtCore.QSize(450, 210)
-    BUTTON_SIZE = QtCore.QSize(120, 22)
-    SLIDER_SIZE = QtCore.QSize(170, 15)
-    TEXT_BOX_SIZE = QtCore.QSize(270, 25)
-    COMBO_BOX_SIZE = QtCore.QSize(105, 25)
+    TEXT_SIZE = QSize(35, 15)
+    SMALL_TEXT_SIZE = QSize(26, 15)
+    LARGE_TEXT_SIZE = QSize(85, 15)
+    IMAGE_SIZE = QSize(450, 450)
+    VIDEO_SIZE = QSize(450, 450)
+    GRAPH_SIZE = QSize(450, 210)
+    BUTTON_SIZE = QSize(120, 22)
+    SLIDER_SIZE = QSize(170, 15)
+    TEXT_BOX_SIZE = QSize(270, 25)
+    COMBO_BOX_SIZE = QSize(105, 25)
 
     # Physical model parameters
     BALL_DIAMETER = 0.0022
@@ -41,8 +50,8 @@ class MainApp(QtWidgets.QWidget):
     # Defining the sample time
     TIME = 0.033
 
-    centers_signal = QtCore.pyqtSignal(tuple, tuple)
-    start_signal = QtCore.pyqtSignal(bool)
+    centers_signal = pyqtSignal(tuple, tuple)
+    start_signal = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         """
@@ -84,38 +93,38 @@ class MainApp(QtWidgets.QWidget):
         self.start_arduino_connection.make_connection(self)
         self.start_arduino_connection.toggle_communication(self)
 
-        self.setupKalmanFilter()
-        self.setupUi()
-        self.setupGraphs()
+        self.setup_kalman_filter()
+        self.setup_ui()
+        self.setup_graphs()
 
-    def setupUi(self):
+    def setup_ui(self):
         """
         This function sets up all the Labels used in the widget, and start all threads
         """
         # Initializing the QTimer
-        self.timer = QtCore.QTimer(self)
+        self.timer = QTimer(self)
 
         # Video Widgets
-        self.image_label_one = QtWidgets.QLabel()
+        self.image_label_one = QLabel()
         self.image_label_one.setFixedSize(self.VIDEO_SIZE)
-        self.image_label_two = QtWidgets.QLabel()
+        self.image_label_two = QLabel()
         self.image_label_two.setFixedSize(self.VIDEO_SIZE)
-        self.image_label_three = QtWidgets.QLabel()
+        self.image_label_three = QLabel()
         self.image_label_three.setFixedSize(self.VIDEO_SIZE)
 
         # Video output ComboBox
-        self.combo_box_one = QtWidgets.QComboBox()
+        self.combo_box_one = QComboBox()
         self.combo_box_one.addItem("Webcam")
         self.combo_box_one.addItem("USB Camera")
         self.combo_box_one.addItem("IP Camera")
         self.combo_box_one.setFixedSize(self.COMBO_BOX_SIZE)
-        self.combo_box_one.activated[str].connect(self.videoChange)
-        self.text_combo_box_one = QtWidgets.QLabel(text='Video Input:')
+        self.combo_box_one.currentTextChanged.connect(self.video_input_change)
+        self.text_combo_box_one = QLabel(text='Video Input:')
         self.text_combo_box_one.setFixedSize(self.LARGE_TEXT_SIZE)
-        self.text_combo_box_one.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.text_combo_box_one.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         # Pattern type ComboBox
-        self.combo_box_two = QtWidgets.QComboBox()
+        self.combo_box_two = QComboBox()
         self.combo_box_two.addItem("Center")
         self.combo_box_two.addItem("Mouse")
         self.combo_box_two.addItem("Joystick")
@@ -123,170 +132,170 @@ class MainApp(QtWidgets.QWidget):
         self.combo_box_two.addItem("Circle")
         self.combo_box_two.addItem("Lissajous")
         self.combo_box_two.setFixedSize(self.COMBO_BOX_SIZE)
-        self.combo_box_two.activated[str].connect(self.modeChange)
-        self.text_combo_box_two = QtWidgets.QLabel(text='Mode:')
+        self.combo_box_two.currentTextChanged.connect(self.mode_change)
+        self.text_combo_box_two = QLabel(text='Mode:')
         self.text_combo_box_two.setFixedSize(self.LARGE_TEXT_SIZE)
-        self.text_combo_box_two.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.text_combo_box_two.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         # Step value ComboBox
-        self.combo_box_three = QtWidgets.QComboBox()
+        self.combo_box_three = QComboBox()
         self.combo_box_three.addItem("1")
         self.combo_box_three.addItem("2")
         self.combo_box_three.addItem("3")
         self.combo_box_three.setFixedSize(self.COMBO_BOX_SIZE)
-        self.combo_box_three.activated[str].connect(self.stepChange)
-        self.text_combo_box_three = QtWidgets.QLabel(text='Step time (s):')
+        self.combo_box_three.currentTextChanged.connect(self.step_change)
+        self.text_combo_box_three = QLabel(text='Step time (s):')
         self.text_combo_box_three.setFixedSize(self.LARGE_TEXT_SIZE)
-        self.text_combo_box_three.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.text_combo_box_three.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         # Radius value ComboBox
-        self.combo_box_four = QtWidgets.QComboBox()
+        self.combo_box_four = QComboBox()
         self.combo_box_four.addItem("2.5")
         self.combo_box_four.addItem("5.0")
         self.combo_box_four.addItem("7.5")
         self.combo_box_four.setFixedSize(self.COMBO_BOX_SIZE)
-        self.combo_box_four.activated[str].connect(self.radiusChange)
-        self.text_combo_box_four = QtWidgets.QLabel(text='Radius (cm):')
+        self.combo_box_four.currentTextChanged.connect(self.radius_change)
+        self.text_combo_box_four = QLabel(text='Radius (cm):')
         self.text_combo_box_four.setFixedSize(self.LARGE_TEXT_SIZE)
-        self.text_combo_box_four.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.text_combo_box_four.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         # Creating the ip line edit box
-        self.camera_ip_textbox = QtWidgets.QLineEdit()
+        self.camera_ip_textbox = QLineEdit()
         self.camera_ip_textbox.setFixedSize(self.TEXT_BOX_SIZE)
-        self.camera_ip_textbox.setAlignment(QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter)
+        self.camera_ip_textbox.setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
         self.camera_ip_textbox.setText(self.ip_value)
         font = self.camera_ip_textbox.font()
         font.setPointSize(12)
         self.camera_ip_textbox.setFont(font)
 
         # Creating the ip line edit box label
-        self.camera_ip_label = QtWidgets.QLabel(text='Camera IP:')
+        self.camera_ip_label = QLabel(text='Camera IP:')
         self.camera_ip_label.setFixedSize(self.LARGE_TEXT_SIZE)
-        self.camera_ip_label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.camera_ip_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         # Creating the Start/Pause button for the video feed
-        self.start_button = QtWidgets.QPushButton("Start")
+        self.start_button = QPushButton("Start")
         self.start_button.setFixedSize(self.BUTTON_SIZE)
-        self.start_button.clicked.connect(self.startApp)
+        self.start_button.clicked.connect(self.start_app)
 
         # Creating the Connect/Disconnect for Arduino communication
-        self.serial_connect_button = QtWidgets.QPushButton("Serial connect")
+        self.serial_connect_button = QPushButton("Serial connect")
         self.serial_connect_button.setFixedSize(self.BUTTON_SIZE)
-        self.serial_connect_button.clicked.connect(self.connectSerial)
+        self.serial_connect_button.clicked.connect(self.connect_serial)
 
         # Creating the Quit button
-        self.quit_button = QtWidgets.QPushButton("Quit")
+        self.quit_button = QPushButton("Quit")
         self.quit_button.setFixedSize(self.BUTTON_SIZE)
         self.quit_button.clicked.connect(self.close)
 
         # Creating the Threshold button for the Widget
-        self.thresh_button = QtWidgets.QPushButton("Ball")
+        self.thresh_button = QPushButton("Ball")
         self.thresh_button.setFixedSize(self.BUTTON_SIZE)
-        self.thresh_button.clicked.connect(self.changeThresh)
+        self.thresh_button.clicked.connect(self.change_threshold_value)
 
         # Creating the start Acess Point button
-        self.access_point_button = QtWidgets.QPushButton("Start server")
+        self.access_point_button = QPushButton("Start server")
         self.access_point_button.setFixedSize(self.BUTTON_SIZE)
-        self.access_point_button.clicked.connect(self.toggleAccessPoint)
-        if os.name == 'posix':
+        self.access_point_button.clicked.connect(self.toggle_access_point)
+        if os.name != 'posix':
             self.access_point_button.setEnabled(False)
 
         # Creating the set ip button
-        self.select_ip_button = QtWidgets.QPushButton("Set IP")
+        self.select_ip_button = QPushButton("Set IP")
         self.select_ip_button.setFixedSize(self.BUTTON_SIZE)
-        self.select_ip_button.clicked.connect(self.setVideoIp)
+        self.select_ip_button.clicked.connect(self.set_video_ip)
 
         # Text labels for Sliders type
-        self.text_r_low_label = QtWidgets.QLabel(text='B:')
+        self.text_r_low_label = QLabel(text='B:')
         self.text_r_low_label.setFixedSize(self.SMALL_TEXT_SIZE)
-        self.text_r_low_label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.text_g_low_label = QtWidgets.QLabel(text='G:')
+        self.text_r_low_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.text_g_low_label = QLabel(text='G:')
         self.text_g_low_label.setFixedSize(self.SMALL_TEXT_SIZE)
-        self.text_g_low_label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.text_b_low_label = QtWidgets.QLabel(text='R:')
+        self.text_g_low_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.text_b_low_label = QLabel(text='R:')
         self.text_b_low_label.setFixedSize(self.SMALL_TEXT_SIZE)
-        self.text_b_low_label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.text_r_high_label = QtWidgets.QLabel(text='B:')
+        self.text_b_low_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.text_r_high_label = QLabel(text='B:')
         self.text_r_high_label.setFixedSize(self.SMALL_TEXT_SIZE)
-        self.text_r_high_label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.text_g_high_label = QtWidgets.QLabel(text='G:')
+        self.text_r_high_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.text_g_high_label = QLabel(text='G:')
         self.text_g_high_label.setFixedSize(self.SMALL_TEXT_SIZE)
-        self.text_g_high_label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-        self.text_b_high_label = QtWidgets.QLabel(text='R:')
+        self.text_g_high_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.text_b_high_label = QLabel(text='R:')
         self.text_b_high_label.setFixedSize(self.SMALL_TEXT_SIZE)
-        self.text_b_high_label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+        self.text_b_high_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         # Text labels for Sliders values
-        self.text_r_low_value_label = QtWidgets.QLabel(text=str(self.threshold_ball[0]))
+        self.text_r_low_value_label = QLabel(text=str(self.threshold_ball[0]))
         self.text_r_low_value_label.setFixedSize(self.TEXT_SIZE)
-        self.text_g_low_value_label = QtWidgets.QLabel(text=str(self.threshold_ball[1]))
+        self.text_g_low_value_label = QLabel(text=str(self.threshold_ball[1]))
         self.text_g_low_value_label.setFixedSize(self.TEXT_SIZE)
-        self.text_b_low_value_label = QtWidgets.QLabel(text=str(self.threshold_ball[2]))
+        self.text_b_low_value_label = QLabel(text=str(self.threshold_ball[2]))
         self.text_b_low_value_label.setFixedSize(self.TEXT_SIZE)
-        self.text_r_high_value_label = QtWidgets.QLabel(text=str(self.threshold_ball[3]))
+        self.text_r_high_value_label = QLabel(text=str(self.threshold_ball[3]))
         self.text_r_high_value_label.setFixedSize(self.TEXT_SIZE)
-        self.text_g_high_value_label = QtWidgets.QLabel(text=str(self.threshold_ball[4]))
+        self.text_g_high_value_label = QLabel(text=str(self.threshold_ball[4]))
         self.text_g_high_value_label.setFixedSize(self.TEXT_SIZE)
-        self.text_b_high_value_label = QtWidgets.QLabel(text=str(self.threshold_ball[5]))
+        self.text_b_high_value_label = QLabel(text=str(self.threshold_ball[5]))
         self.text_b_high_value_label.setFixedSize(self.TEXT_SIZE)
 
         # Creating the lower threshold slider for the red color
-        self.slider_r_low = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider_r_low = QSlider(Qt.Horizontal)
         self.slider_r_low.setFixedSize(self.SLIDER_SIZE)
         self.slider_r_low.setMinimum(0)
         self.slider_r_low.setMaximum(255)
         self.slider_r_low.setValue(self.threshold_ball[0])
-        self.slider_r_low.valueChanged.connect(partial(self.sliderValueChange, number=0,
+        self.slider_r_low.valueChanged.connect(partial(self.slider_value_change, number=0,
                                                        text_value_label=self.text_r_low_value_label,
                                                        slider=self.slider_r_low))
 
         # Creating the lower threshold slider for the green color
-        self.slider_g_low = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider_g_low = QSlider(Qt.Horizontal)
         self.slider_g_low.setFixedSize(self.SLIDER_SIZE)
         self.slider_g_low.setMinimum(0)
         self.slider_g_low.setMaximum(255)
         self.slider_g_low.setValue(self.threshold_ball[1])
-        self.slider_g_low.valueChanged.connect(partial(self.sliderValueChange, number=1,
+        self.slider_g_low.valueChanged.connect(partial(self.slider_value_change, number=1,
                                                        text_value_label=self.text_g_low_value_label,
                                                        slider=self.slider_g_low))
 
         # Creating the lower threshold slider for the blue color
-        self.slider_b_low = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider_b_low = QSlider(Qt.Horizontal)
         self.slider_b_low.setFixedSize(self.SLIDER_SIZE)
         self.slider_b_low.setMinimum(0)
         self.slider_b_low.setMaximum(255)
         self.slider_b_low.setValue(self.threshold_ball[2])
-        self.slider_b_low.valueChanged.connect(partial(self.sliderValueChange, number=2,
+        self.slider_b_low.valueChanged.connect(partial(self.slider_value_change, number=2,
                                                        text_value_label=self.text_b_low_value_label,
                                                        slider=self.slider_b_low))
 
         # Creating the upper threshold slider for the red color
-        self.slider_r_high = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider_r_high = QSlider(Qt.Horizontal)
         self.slider_r_high.setFixedSize(self.SLIDER_SIZE)
         self.slider_r_high.setMinimum(0)
         self.slider_r_high.setMaximum(255)
         self.slider_r_high.setValue(self.threshold_ball[3])
-        self.slider_r_high.valueChanged.connect(partial(self.sliderValueChange, number=3,
+        self.slider_r_high.valueChanged.connect(partial(self.slider_value_change, number=3,
                                                         text_value_label=self.text_r_high_value_label,
                                                         slider=self.slider_r_high))
 
         # Creating the upper threshold slider for the green color
-        self.slider_g_high = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider_g_high = QSlider(Qt.Horizontal)
         self.slider_g_high.setFixedSize(self.SLIDER_SIZE)
         self.slider_g_high.setMinimum(0)
         self.slider_g_high.setMaximum(255)
         self.slider_g_high.setValue(self.threshold_ball[4])
-        self.slider_g_high.valueChanged.connect(partial(self.sliderValueChange, number=4,
+        self.slider_g_high.valueChanged.connect(partial(self.slider_value_change, number=4,
                                                         text_value_label=self.text_g_high_value_label,
                                                         slider=self.slider_g_high))
 
         # Creating the upper threshold slider for the blue color
-        self.slider_b_high = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider_b_high = QSlider(Qt.Horizontal)
         self.slider_b_high.setFixedSize(self.SLIDER_SIZE)
         self.slider_b_high.setMinimum(0)
         self.slider_b_high.setMaximum(255)
         self.slider_b_high.setValue(self.threshold_ball[5])
-        self.slider_b_high.valueChanged.connect(partial(self.sliderValueChange, number=5,
+        self.slider_b_high.valueChanged.connect(partial(self.slider_value_change, number=5,
                                                         text_value_label=self.text_b_high_value_label,
                                                         slider=self.slider_b_high))
 
@@ -304,28 +313,28 @@ class MainApp(QtWidgets.QWidget):
 
         # Creating the Layouts
         # Main Layout
-        self.main_layout = QtWidgets.QVBoxLayout()
+        self.main_layout = QVBoxLayout()
         # Top Layout
-        self.top_layout = QtWidgets.QHBoxLayout()
+        self.top_layout = QHBoxLayout()
         # Top Left
-        self.top_left_layout = QtWidgets.QVBoxLayout()
-        self.top_left_top_layout = QtWidgets.QHBoxLayout()
-        self.top_left_mid_layout = QtWidgets.QHBoxLayout()
-        self.top_left_bot_layout = QtWidgets.QHBoxLayout()
+        self.top_left_layout = QVBoxLayout()
+        self.top_left_top_layout = QHBoxLayout()
+        self.top_left_mid_layout = QHBoxLayout()
+        self.top_left_bot_layout = QHBoxLayout()
         # Top Mid
-        self.top_mid_layout = QtWidgets.QVBoxLayout()
-        self.top_mid_top_layout = QtWidgets.QHBoxLayout()
-        self.top_mid_mid_layout = QtWidgets.QHBoxLayout()
-        self.top_mid_bot_layout = QtWidgets.QHBoxLayout()
+        self.top_mid_layout = QVBoxLayout()
+        self.top_mid_top_layout = QHBoxLayout()
+        self.top_mid_mid_layout = QHBoxLayout()
+        self.top_mid_bot_layout = QHBoxLayout()
         # Top Right
-        self.top_right_layout = QtWidgets.QVBoxLayout()
-        self.top_right_top_layout = QtWidgets.QHBoxLayout()
-        self.top_right_mid_layout = QtWidgets.QHBoxLayout()
-        self.top_right_bot_layout = QtWidgets.QHBoxLayout()
+        self.top_right_layout = QVBoxLayout()
+        self.top_right_top_layout = QHBoxLayout()
+        self.top_right_mid_layout = QHBoxLayout()
+        self.top_right_bot_layout = QHBoxLayout()
         # Mid Layout
-        self.mid_layout = QtWidgets.QHBoxLayout()
+        self.mid_layout = QHBoxLayout()
         # Bot Layout
-        self.bot_layout = QtWidgets.QHBoxLayout()
+        self.bot_layout = QHBoxLayout()
         # Layouts configuration
         # Adding the Top-Left layout widgets
         self.top_left_top_layout.addWidget(self.start_button)
@@ -394,12 +403,12 @@ class MainApp(QtWidgets.QWidget):
         # Defining the widget layout as the main layout
         self.setLayout(self.main_layout)
 
-    def updateGui(self, frame, black, image):
+    def update_gui(self, frame, black, image):
         """
         This function update the widget custom GUI
         """
         # Setting up the FONT
-        FONT = cv2.FONT_HERSHEY_SIMPLEX
+        font = cv2.FONT_HERSHEY_SIMPLEX
         # Drawing the bounding squares in the frame
         cv2.rectangle(frame, (25, 25), (425, 425), (0, 255, 0), 2)
 
@@ -430,99 +439,99 @@ class MainApp(QtWidgets.QWidget):
                            int(self.IMAGE_SIZE.height()/2 - self.prediction[1][0])), 5, (0, 0, 255), -1)
 
         cv2.putText(frame, "CP", (self.prediction[0][0].astype(int) + int(self.IMAGE_SIZE.width()/2 + 10),
-                    int(self.IMAGE_SIZE.height()/2 + 20) - self.prediction[1][0].astype(int)),
-                    FONT, 0.5, (0, 0, 255), 1)
+                                  int(self.IMAGE_SIZE.height()/2 + 20) - self.prediction[1][0].astype(int)),
+                    font, 0.5, (0, 0, 255), 1)
         cv2.circle(frame, (self.setpoint_pixels[0] + int(self.IMAGE_SIZE.width()/2), int(self.IMAGE_SIZE.height()/2)
                            - self.setpoint_pixels[1]), 5, (255, 0, 0), -1)
         cv2.putText(frame, "SP", (self.setpoint_pixels[0] + int(self.IMAGE_SIZE.width()/2 - 20),
-                    int(self.IMAGE_SIZE.height()/2 - 10) - self.setpoint_pixels[1]),
-                    FONT, 0.5, (255, 0, 0), 1)
+                                  int(self.IMAGE_SIZE.height()/2 - 10) - self.setpoint_pixels[1]),
+                    font, 0.5, (255, 0, 0), 1)
 
         cv2.line(frame, (25, int(self.IMAGE_SIZE.height()/2 - self.prediction[1][0])),
-                        (425, int(self.IMAGE_SIZE.height()/2 - self.prediction[1][0])), (0, 0, 255), 1, 8, 0)
+                 (425, int(self.IMAGE_SIZE.height()/2 - self.prediction[1][0])), (0, 0, 255), 1, 8, 0)
         cv2.line(frame, (int(self.prediction[0][0] + self.IMAGE_SIZE.width()/2), 25),
-                        (int(self.prediction[0][0] + self.IMAGE_SIZE.width()/2), 425), (0, 0, 255), 1, 8, 0)
+                 (int(self.prediction[0][0] + self.IMAGE_SIZE.width()/2), 425), (0, 0, 255), 1, 8, 0)
 
-        TEXT_POS_X = [10, 55, 95, 135, 175, 222, 262, 302, 344, 380, 418]
-        TEXT_POS_Y = [8, 13, 13, 13, 13, 13, 6, 6, 6, 6, 2]
+        text_pos_x = [10, 55, 95, 135, 175, 222, 262, 302, 344, 380, 418]
+        text_pos_y = [8, 13, 13, 13, 13, 13, 6, 6, 6, 6, 2]
         for i in range(0, 11):
             cv2.line(frame, (25 + i * 40, 425), (25 + i * 40, 415), (0, 255, 0), 1, 8, 0)
             cv2.line(frame, (25, 25 + i*40), (35, 25 + i * 40), (0, 255, 0), 1, 8, 0)
-            cv2.putText(frame, str(int(-10 + 2 * i)), (TEXT_POS_X[i], 440), FONT, 0.3, (0, 255, 0), 1)
-            cv2.putText(frame, str(int(10 - 2 * i)), (TEXT_POS_Y[i], 27 + i*40), FONT, 0.3, (0, 255, 0), 1)
+            cv2.putText(frame, str(int(-10 + 2 * i)), (text_pos_x[i], 440), font, 0.3, (0, 255, 0), 1)
+            cv2.putText(frame, str(int(10 - 2 * i)), (text_pos_y[i], 27 + i*40), font, 0.3, (0, 255, 0), 1)
 
         # Gui #1
-        cv2.putText(black, "Ball Speed", (15, 30), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "dX: %+.2f m/s" % (self.d_x), (15, 50), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "dY: %+.2f m/s" % (self.d_y), (15, 65), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Set Point", (15, 85), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "X: %+.2f Cm" % (self.setpoint_centimeters[0]), (15, 105), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Y: %+.2f Cm" % (self.setpoint_centimeters[1]), (15, 120), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Current Point", (15, 140), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "X: %+.2f Cm" % (self.center_centimeters[0]), (15, 160), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Y: %+.2f Cm" % (self.center_centimeters[1]), (15, 175), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Error", (15, 195), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "X: %+.2f Cm" % (self.error_centimeters[0]), (15, 215), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Y: %+.2f Cm" % (self.error_centimeters[1]), (15, 230), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Mode", (15, 250), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "{}".format(self.move_pattern), (15, 270), FONT, 0.5, (255, 255, 0), 1)
+        cv2.putText(black, "Ball Speed", (15, 30), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "dX: %+.2f m/s" % (self.d_x), (15, 50), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "dY: %+.2f m/s" % (self.d_y), (15, 65), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Set Point", (15, 85), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "X: %+.2f Cm" % (self.setpoint_centimeters[0]), (15, 105), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Y: %+.2f Cm" % (self.setpoint_centimeters[1]), (15, 120), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Current Point", (15, 140), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "X: %+.2f Cm" % (self.center_centimeters[0]), (15, 160), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Y: %+.2f Cm" % (self.center_centimeters[1]), (15, 175), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Error", (15, 195), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "X: %+.2f Cm" % (self.error_centimeters[0]), (15, 215), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Y: %+.2f Cm" % (self.error_centimeters[1]), (15, 230), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Mode", (15, 250), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "{}".format(self.move_pattern), (15, 270), font, 0.5, (255, 255, 0), 1)
 
         # Criando os gauges do gui lateral
-        angle_x_text_size = int(cv2.getTextSize(str(int(self.angle_x)), FONT, 0.6, 1)[0][0] / 2)
-        angle_y_text_size = int(cv2.getTextSize(str(int(self.angle_y)), FONT, 0.6, 1)[0][0] / 2)
-        cv2.putText(black, "X-axis angle", (15, 292), FONT, 0.5, (0, 255, 0), 1)
+        angle_x_text_size = int(cv2.getTextSize(str(int(self.angle_x)), font, 0.6, 1)[0][0] / 2)
+        angle_y_text_size = int(cv2.getTextSize(str(int(self.angle_y)), font, 0.6, 1)[0][0] / 2)
+        cv2.putText(black, "X-axis angle", (15, 292), font, 0.5, (0, 255, 0), 1)
         cv2.ellipse(black, (85, 350), (49, 49), 0, 180, 360, (255, 255, 255), -1)
         cv2.ellipse(black, (85, 350), (50, 50), 0, int(270 + int(3 * self.angle_x)), 180, (255, 0, 0), -1)
         cv2.ellipse(black, (85, 350), (30, 30), 0, 180, 360, (0, 0, 0), -1)
-        cv2.putText(black, "{}".format(int(self.angle_x)), (85 - angle_x_text_size, 350), FONT, 0.6, (0, 255, 0), 1)
-        cv2.putText(black, "Y-axis angle", (15, 370), FONT, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "{}".format(int(self.angle_x)), (85 - angle_x_text_size, 350), font, 0.6, (0, 255, 0), 1)
+        cv2.putText(black, "Y-axis angle", (15, 370), font, 0.5, (0, 255, 0), 1)
         cv2.ellipse(black, (85, 430), (49, 49), 0, 180, 360, (255, 255, 255), -1)
         cv2.ellipse(black, (85, 430), (50, 50), 0, int(270 + int(3 * self.angle_y)), 180, (0, 0, 255), -1)
         cv2.ellipse(black, (85, 430), (30, 30), 0, 180, 360, (0, 0, 0), -1)
-        cv2.putText(black, "{}".format(int(self.angle_y)), (85 - angle_y_text_size, 430), FONT, 0.6, (0, 255, 0), 1)
+        cv2.putText(black, "{}".format(int(self.angle_y)), (85 - angle_y_text_size, 430), font, 0.6, (0, 255, 0), 1)
 
         # Gui #2
-        cv2.putText(black, "System settings", (225, 35), FONT, 0.6, (0, 255, 0), 1)
-        cv2.putText(black, "Mechanical constants", (180, 60), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Ball diameter: {} m".format(self.BALL_DIAMETER), (180, 85), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Ball weight: {} Kg".format(self.BALL_WEIGHT), (180, 105), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Plate friction: {} N/m".format(self.PLATE_FRICTION), (180, 125), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Gravity: {} m/s^2".format(self.GRAVITY), (180, 145), FONT, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "System settings", (225, 35), font, 0.6, (0, 255, 0), 1)
+        cv2.putText(black, "Mechanical constants", (180, 60), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Ball diameter: {} m".format(self.BALL_DIAMETER), (180, 85), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Ball weight: {} Kg".format(self.BALL_WEIGHT), (180, 105), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Plate friction: {} N/m".format(self.PLATE_FRICTION), (180, 125), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Gravity: {} m/s^2".format(self.GRAVITY), (180, 145), font, 0.5, (0, 255, 0), 1)
 
         # Marcador de Tempo para debugging
-        # cv2.putText(black, "Sample Time: {0:.3f} s".format(self.loop_time), (180, 290), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "WiFi Server Status:", (180, 260), FONT, 0.5, (0, 255, 0), 1)
-        if (self.access_point_button.text() == 'Stop server'):
-            cv2.putText(black, "Online", (335, 260), FONT, 0.5, (0, 255, 0), 1)
+        # cv2.putText(black, "Sample Time: {0:.3f} s".format(self.loop_time), (180, 290), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "WiFi Server Status:", (180, 260), font, 0.5, (0, 255, 0), 1)
+        if self.access_point_button.text() == 'Stop server':
+            cv2.putText(black, "Online", (335, 260), font, 0.5, (0, 255, 0), 1)
         else:
-            cv2.putText(black, "Offline", (335, 260), FONT, 0.5, (255, 0, 0), 1)
-        cv2.putText(black, "Serial Status:", (180, 290), FONT, 0.5, (0, 255, 0), 1)
-        if (self.serial_connect_button.text() == 'Serial disconnect'):
-            cv2.putText(black, "Connected", (290, 290), FONT, 0.5, (0, 255, 0), 1)
+            cv2.putText(black, "Offline", (335, 260), font, 0.5, (255, 0, 0), 1)
+        cv2.putText(black, "Serial Status:", (180, 290), font, 0.5, (0, 255, 0), 1)
+        if self.serial_connect_button.text() == 'Serial disconnect':
+            cv2.putText(black, "Connected", (290, 290), font, 0.5, (0, 255, 0), 1)
         else:
-            cv2.putText(black, "Disconnected", (290, 290), FONT, 0.5, (255, 0, 0), 1)
+            cv2.putText(black, "Disconnected", (290, 290), font, 0.5, (255, 0, 0), 1)
         cv2.putText(black, "Sample Time: {} ms".format(int(1000 * self.arduino_communication_time)), (180, 330),
-                    FONT, 0.5, (0, 255, 0), 1)
+                    font, 0.5, (0, 255, 0), 1)
         cv2.putText(black, "Total Time: {0:.2f} s".format(time.time() - self.start_time), (180, 360),
-                    FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "UFPE", (180, 390), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "DES - CTG", (180, 410), FONT, 0.5, (0, 255, 0), 1)
-        cv2.putText(black, "Wilton O. de Souza Filho", (180, 430), FONT, 0.5, (0, 255, 0), 1)
+                    font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "UFPE", (180, 390), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "DES - CTG", (180, 410), font, 0.5, (0, 255, 0), 1)
+        cv2.putText(black, "Wilton O. de Souza Filho", (180, 430), font, 0.5, (0, 255, 0), 1)
 
-    def setupGraphs(self):
+    def setup_graphs(self):
         """
         This function sets up all configuration for the live graphs displayed on the widget
         """
-        SAMPLE_INTERVAL = 1
-        SAMPLE_WINDOW = 100
+        sample_interval = 1
+        sample_window = 100
 
         # Creating all the 3 graphs and setting their titles
-        self.my_plot_one = self.graph_one.addPlot(title='Total Error')
-        self.my_plot_two = self.graph_two.addPlot(title='X - Set Point / Current Point')
-        self.my_plot_three = self.graph_three.addPlot(title='Y - Set Point / Current Point')
+        my_plot_one = self.graph_one.addPlot(title='Total Error')
+        my_plot_two = self.graph_two.addPlot(title='X - Set Point / Current Point')
+        my_plot_three = self.graph_three.addPlot(title='Y - Set Point / Current Point')
 
-        # self._interval = int(SAMPLE_INTERVAL*1000)
-        bufsize = int(SAMPLE_WINDOW/SAMPLE_INTERVAL)
+        # self._interval = int(sample_interval*1000)
+        bufsize = int(sample_window/sample_interval)
         self.data_buffer_one = deque([0.0]*bufsize, bufsize)
         self.data_buffer_two = deque([0.0]*bufsize, bufsize)
         self.data_buffer_three = deque([0.0]*bufsize, bufsize)
@@ -530,50 +539,50 @@ class MainApp(QtWidgets.QWidget):
         self.data_buffer_five = deque([0.0]*bufsize, bufsize)
         self.data_buffer_six = deque([0.0]*bufsize, bufsize)
         # Criando variável que armazena a quatidade de amostras a serem mostradas (Range do eixo X)
-        self.x = np.linspace(-SAMPLE_WINDOW, 0.0, bufsize)
+        self.x_axis = np.linspace(-sample_window, 0.0, bufsize)
         # Criando variáveis que armazenarão os dados a serem plotados para cada variável
 
-        self.my_plot_one.showGrid(x=True, y=True)
-        self.my_plot_one.setLabel('left', 'Position', 'Cm')
-        self.my_plot_one.setLabel('bottom', 'Samples', 'n')
-        self.my_plot_one.setYRange(-22, 22)
+        my_plot_one.showGrid(x=True, y=True)
+        my_plot_one.setLabel('left', 'Position', 'Cm')
+        my_plot_one.setLabel('bottom', 'Samples', 'n')
+        my_plot_one.setYRange(-22, 22)
 
-        self.my_plot_two.showGrid(x=True, y=True)
-        self.my_plot_two.setLabel('left', 'Position', 'Cm')
-        self.my_plot_two.setLabel('bottom', 'Samples', 'n')
-        self.my_plot_two.setYRange(-12, 12)
+        my_plot_two.showGrid(x=True, y=True)
+        my_plot_two.setLabel('left', 'Position', 'Cm')
+        my_plot_two.setLabel('bottom', 'Samples', 'n')
+        my_plot_two.setYRange(-12, 12)
 
-        self.my_plot_three.showGrid(x=True, y=True)
-        self.my_plot_three.setLabel('left', 'Position', 'Cm')
-        self.my_plot_three.setLabel('bottom', 'Samples', 'n')
-        self.my_plot_three.setYRange(-12, 12)
+        my_plot_three.showGrid(x=True, y=True)
+        my_plot_three.setLabel('left', 'Position', 'Cm')
+        my_plot_three.setLabel('bottom', 'Samples', 'n')
+        my_plot_three.setYRange(-12, 12)
 
-        self.curve_one = self.my_plot_one.plot(self.x, self.data_buffer_one,   pen=pg.mkPen((255, 0, 0), width=2))
-        self.curve_two = self.my_plot_one.plot(self.x, self.data_buffer_two,   pen=pg.mkPen((0, 0, 255), width=2))
-        self.curve_three = self.my_plot_two.plot(self.x, self.data_buffer_three, pen=pg.mkPen((255, 0, 0), width=2))
-        self.curve_four = self.my_plot_two.plot(self.x, self.data_buffer_four,  pen=pg.mkPen((0, 0, 255), width=2))
-        self.curve_five = self.my_plot_three.plot(self.x, self.data_buffer_five,  pen=pg.mkPen((255, 0, 0), width=2))
-        self.curve_six = self.my_plot_three.plot(self.x, self.data_buffer_six,   pen=pg.mkPen((0, 0, 255), width=2))
+        self.curve_one = my_plot_one.plot(self.x_axis, self.data_buffer_one, pen=pg.mkPen((255, 0, 0), width=2))
+        self.curve_two = my_plot_one.plot(self.x_axis, self.data_buffer_two, pen=pg.mkPen((0, 0, 255), width=2))
+        self.curve_three = my_plot_two.plot(self.x_axis, self.data_buffer_three, pen=pg.mkPen((255, 0, 0), width=2))
+        self.curve_four = my_plot_two.plot(self.x_axis, self.data_buffer_four, pen=pg.mkPen((0, 0, 255), width=2))
+        self.curve_five = my_plot_three.plot(self.x_axis, self.data_buffer_five, pen=pg.mkPen((255, 0, 0), width=2))
+        self.curve_six = my_plot_three.plot(self.x_axis, self.data_buffer_six, pen=pg.mkPen((0, 0, 255), width=2))
 
         # Adicionando as Legendas no Gráfico 1
         self.legend_one = pg.LegendItem((30, 10), offset=(70, 10))
-        self.legend_one.setParentItem(self.my_plot_one.graphicsItem())
+        self.legend_one.setParentItem(my_plot_one.graphicsItem())
         self.legend_one.addItem(self.curve_one, 'X ')
         self.legend_one.addItem(self.curve_two, 'Y ')
 
         # Adicionando as Legendas no Gráfico 2
         self.legend_two = pg.LegendItem((30, 10), offset=(70, 30))
-        self.legend_two.setParentItem(self.my_plot_two.graphicsItem())
+        self.legend_two.setParentItem(my_plot_two.graphicsItem())
         self.legend_two.addItem(self.curve_three, 'X SP')
         self.legend_two.addItem(self.curve_four, 'X CP')
 
         # Adicionando as Legendas no Gráfico 3
         self.legend_three = pg.LegendItem(size=(10, 10), offset=(70, 30))
-        self.legend_three.setParentItem(self.my_plot_three.graphicsItem())
+        self.legend_three.setParentItem(my_plot_three.graphicsItem())
         self.legend_three.addItem(self.curve_five, 'Y SP')
         self.legend_three.addItem(self.curve_six, 'Y CP')
 
-    def startApp(self):
+    def start_app(self):
         """
         This function start all threads and starts the Widget
         """
@@ -581,7 +590,7 @@ class MainApp(QtWidgets.QWidget):
         if self.start_button.text() == 'Start':
 
             # To prevent any not connected device error, start the app always with video feed from the embedded webcam
-            self.vs = WebcamVideoStream(src=0).start()
+            self.video_source = WebcamVideoStream(src=0).start()
             self.current_output = 0
 
             if self.start_arduino_connection.is_connected:
@@ -589,7 +598,7 @@ class MainApp(QtWidgets.QWidget):
 
             # Iniciando o QTimer
             self.timer.timeout.connect(self.videoProcessing)
-            self.timer.timeout.connect(self.updateWidgets)
+            self.timer.timeout.connect(self.update_widgets)
             self.timer.start(self.TIME)
 
             self.start_button.setText("Pause")
@@ -626,7 +635,7 @@ class MainApp(QtWidgets.QWidget):
             self.access_point_button.setEnabled(False)
             self.quit_button.setEnabled(False)
 
-    def connectSerial(self):
+    def connect_serial(self):
         """
         This function handles the arduino serial connection using the QThread method
         """
@@ -641,9 +650,12 @@ class MainApp(QtWidgets.QWidget):
             # del self.start_arduino_connection
             self.serial_connect_button.setText("Serial connect")
 
-    def toggleAccessPoint(self):
+    def toggle_access_point(self):
+        """
+        Method to start/stop the access point thread
+        """
 
-        if os.name == 'posix':
+        if os.name != 'posix':
             print("This Access Point module works only on Linux, sorry!")
         else:
             if self.access_point_button.text() == "Start server":
@@ -653,7 +665,7 @@ class MainApp(QtWidgets.QWidget):
                 self.access_point_button.setText("Start server")
                 self.access_point_server.stop()
 
-    def changeThresh(self):
+    def change_threshold_value(self):
         """
         This function handles the selection of the threshold frame to be displayed
         """
@@ -677,7 +689,10 @@ class MainApp(QtWidgets.QWidget):
                 slider.setValue(self.threshold_ball[index])
                 label.setText(str(self.threshold_ball[index]))
 
-    def handleClose(self):
+    def handle_close_event(self):
+        """
+        Method to handle the cloe event from the application
+        """
         if self.timer.isActive():
             print("Stopping Timer...")
             self.timer.stop()
@@ -686,68 +701,73 @@ class MainApp(QtWidgets.QWidget):
             print("Shutting down the WiFi Server")
             self.access_point_server.stop()
             print("Done!")
-        if (self.start_button.text() != 'Start'):
+        if self.start_button.text() != 'Start':
             print("Stopping Video Stream Thread...")
-            self.vs.stop()
+            self.video_source.stop()
             print("Done!")
-        if (self.serial_connect_button.text() == 'Serial disconnect'):
+        if self.serial_connect_button.text() == 'Serial disconnect':
             print("Stopping Serial Data Communication...")
             self.start_arduino_connection.stop()
             print("Done!")
         print("Exiting...")
         time.sleep(1)
 
+    # pylint: disable=invalid-name
+    # This method name can't be snake_case because it overrides a PyQt5 native function
     def closeEvent(self, event):
         """
         This function handles the close event (Pop up message to exit the application)
         """
-        reply = QtWidgets.QMessageBox.question(self, 'Message', "Are you sure to quit?",
-                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                                               QtWidgets.QMessageBox.No)
+        reply = QMessageBox.question(self, 'Message', "Are you sure to quit?",
+                                     QMessageBox.Yes | QMessageBox.No,
+                                     QMessageBox.No)
 
-        if reply == QtWidgets.QMessageBox.Yes:
-            self.handleClose()
+        if reply == QMessageBox.Yes:
+            self.handle_close_event()
             event.accept()
         else:
             event.ignore()
 
-    def videoChange(self, text):
+    def video_input_change(self, text):
         """
         This function handles the video input change from the combobox
         """
         if self.start_button.text() != 'Start':
             if text == 'Webcam' and self.current_output != 0:
-                self.vs.stop()
-                self.vs = WebcamVideoStream(src=0).start()
+                self.video_source.stop()
+                self.video_source = WebcamVideoStream(src=0).start()
                 self.current_output = 0
             elif text == 'USB Camera' and self.current_output != 1:
-                self.vs.stop()
-                self.vs = WebcamVideoStream(src=1).start()
+                self.video_source.stop()
+                self.video_source = WebcamVideoStream(src=1).start()
                 self.current_output = 1
             elif text == 'IP Camera' and self.current_output != 2:
-                self.vs.stop()
+                self.video_source.stop()
                 website = 'http://' + self.ip_value + ':8080/video'
-                self.vs = WebcamVideoStream(src=website).start()
+                self.video_source = WebcamVideoStream(src=website).start()
                 self.current_output = 2
             else:
                 print("This video is already selected")
 
-    def setVideoIp(self):
+    def set_video_ip(self):
+        """
+        Method to set the ip adress of the remote camera
+        """
         self.ip_value = self.camera_ip_textbox.text()
 
-    def modeChange(self, text):
+    def mode_change(self, text):
         """
         This function handles the mode change from the combobox
         """
         self.move_pattern = text
 
-    def stepChange(self, text):
+    def step_change(self, text):
         """
         This function handles the change on step size
         """
         self.step = int(text)
 
-    def radiusChange(self, text):
+    def radius_change(self, text):
         """
         This function handles the change on radius size
         """
@@ -758,7 +778,7 @@ class MainApp(QtWidgets.QWidget):
         elif text == '7.5':
             self.circle_radius = 150
 
-    def sliderValueChange(self, number=None, text_value_label=None, slider=None):
+    def slider_value_change(self, number=None, text_value_label=None, slider=None):
         """
         This function handles the value change of the sliders
         """
@@ -769,7 +789,7 @@ class MainApp(QtWidgets.QWidget):
             self.threshold_plate[number] = slider.value()
             text_value_label.setText(str(self.threshold_plate[number]))
 
-    def setSetpoint(self):
+    def set_setpoint_type(self):
         """
         This function sets the correct setpoint variable according to the choosen mode
         """
@@ -790,26 +810,26 @@ class MainApp(QtWidgets.QWidget):
             pointY = int(80 * math.sin(2 * self.step/4 * (time.time() - self.start_time) * math.pi))
             self.setpoint_pixels = (pointX, pointY)
 
-    def updateGraph(self, list):
+    def update_graph(self, input_list):
         """
         This function updates all three graphs data
         """
         # Armazenando os dados recebidos pela função nos buffers
-        self.data_buffer_one.append(list[0])
-        self.data_buffer_two.append(list[1])
-        self.data_buffer_three.append(list[2])
-        self.data_buffer_four.append(list[3])
-        self.data_buffer_five.append(list[4])
-        self.data_buffer_six.append(list[5])
+        self.data_buffer_one.append(input_list[0])
+        self.data_buffer_two.append(input_list[1])
+        self.data_buffer_three.append(input_list[2])
+        self.data_buffer_four.append(input_list[3])
+        self.data_buffer_five.append(input_list[4])
+        self.data_buffer_six.append(input_list[5])
         # Atualizando as variáveis de curva x e y de cada gráfico
-        self.curve_one.setData(self.x, self.data_buffer_one)
-        self.curve_two.setData(self.x, self.data_buffer_two)
-        self.curve_three.setData(self.x, self.data_buffer_three)
-        self.curve_four.setData(self.x, self.data_buffer_four)
-        self.curve_five.setData(self.x, self.data_buffer_five)
-        self.curve_six.setData(self.x, self.data_buffer_six)
+        self.curve_one.setData(self.x_axis, self.data_buffer_one)
+        self.curve_two.setData(self.x_axis, self.data_buffer_two)
+        self.curve_three.setData(self.x_axis, self.data_buffer_three)
+        self.curve_four.setData(self.x_axis, self.data_buffer_four)
+        self.curve_five.setData(self.x_axis, self.data_buffer_five)
+        self.curve_six.setData(self.x_axis, self.data_buffer_six)
 
-    def updateJoystick(self, joystick_x, joystick_y):
+    def update_joystick_position(self, joystick_x, joystick_y):
         """
         This function updates the points of the joystick setpoint variable
         """
@@ -821,18 +841,18 @@ class MainApp(QtWidgets.QWidget):
         """
         This function converts the value from pixels to centimeters
         """
-        return(round(0.05 * px_value[0], 2), round(0.05 * px_value[1], 2))
+        return round(0.05 * px_value[0], 2), round(0.05 * px_value[1], 2)
 
-    def imageToQimage(self, image):
+    def image_to_qimage(self, image):
         """
         This function converts the processed frame to a QtGui.QImage, which is needed to be displayed on the widget
         """
         height, width, __ = image.shape
         bytes_per_line = 3 * width
-        q_image = QtGui.QImage(image.data, width, height, bytes_per_line, QtGui.QImage.Format_RGB888)
-        return(q_image)
+        q_image = QImage(image.data, width, height, bytes_per_line, QImage.Format_RGB888)
+        return q_image
 
-    def setupKalmanFilter(self):
+    def setup_kalman_filter(self):
         """
         This function sets up the Kalman Filter parameters
         """
@@ -856,7 +876,7 @@ class MainApp(QtWidgets.QWidget):
         """
         This function handles the mouse press event, to setting the setpoint in mouse mode
         """
-        if event.button() == QtCore.Qt.LeftButton:
+        if event.button() == Qt.LeftButton:
             if (493 < event.x() < 893) and (121 < event.y() < 521) and (self.move_pattern == 'Mouse'):
                 valueX = event.x() - 693
                 valueY = -event.y() + 321
@@ -869,7 +889,7 @@ class MainApp(QtWidgets.QWidget):
         """
         tick_one = cv2.getTickCount()
         # Capture the Camera Frame
-        frame = self.vs.read()
+        frame = self.video_source.read()
         frame = frame[15:465, 95:545]
         frame = imutils.rotate(frame, 90)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -890,24 +910,24 @@ class MainApp(QtWidgets.QWidget):
 
         self.pts_list = [[0, 0], [0, 0], [0, 0], [0, 0]]
         for contour in contours:
-            M = cv2.moments(contour)
-            if (M['m00'] > 200):
-                cx = int(M['m10']/M['m00'])
-                cy = int(M['m01']/M['m00'])
-                if (cx < 150):
-                    if (cy < 120):
-                        self.pts_list[0][0] = int(cx)
-                        self.pts_list[0][1] = int(cy)
+            moments = cv2.moments(contour)
+            if moments['m00'] > 200:
+                center_x = int(moments['m10']/moments['m00'])
+                center_y = int(moments['m01']/moments['m00'])
+                if center_x < 150:
+                    if center_y < 120:
+                        self.pts_list[0][0] = int(center_x)
+                        self.pts_list[0][1] = int(center_y)
                     else:
-                        self.pts_list[3][0] = int(cx)
-                        self.pts_list[3][1] = int(cy)
+                        self.pts_list[3][0] = int(center_x)
+                        self.pts_list[3][1] = int(center_y)
                 else:
-                    if (cy < 150):
-                        self.pts_list[1][0] = int(cx)
-                        self.pts_list[1][1] = int(cy)
+                    if center_y < 150:
+                        self.pts_list[1][0] = int(center_x)
+                        self.pts_list[1][1] = int(center_y)
                     else:
-                        self.pts_list[2][0] = int(cx)
-                        self.pts_list[2][1] = int(cy)
+                        self.pts_list[2][0] = int(center_x)
+                        self.pts_list[2][1] = int(center_y)
 
         points_one = np.float32([[self.pts_list[0][0], self.pts_list[0][1]],
                                  [self.pts_list[1][0], self.pts_list[1][1]],
@@ -954,7 +974,7 @@ class MainApp(QtWidgets.QWidget):
         self.d_y = round(self.prediction[3][0], 2)
 
         # Updating Set Point according to choosen mode
-        self.setSetpoint()
+        self.set_setpoint_type()
         self.error_pixels = (self.setpoint_pixels[0] - self.prediction[0][0],
                              self.setpoint_pixels[1] - self.prediction[1][0])
 
@@ -981,30 +1001,36 @@ class MainApp(QtWidgets.QWidget):
         self.arduino_communication_time = data[4]
 
     def get_arduino_data(self, application_object):
+        """
+        Metho to connect the arduino data signal to the main app
+        """
         application_object.arduino_data.connect(self.get_data_from_arduino)
 
-    def updateWidgets(self):
+    def update_widgets(self):
+        """
+        Method to update the app widgets data
+        """
         initial_time = time.time()
-        self.updateJoystick(self.joystick_x, self.joystick_y)
+        self.update_joystick_position(self.joystick_x, self.joystick_y)
 
-        self.updateGraph([self.error_centimeters[0], self.error_centimeters[1],
-                         self.setpoint_centimeters[0], self.center_centimeters[0],
-                         self.setpoint_centimeters[1], self.center_centimeters[1]])
+        self.update_graph([self.error_centimeters[0], self.error_centimeters[1],
+                           self.setpoint_centimeters[0], self.center_centimeters[0],
+                           self.setpoint_centimeters[1], self.center_centimeters[1]])
 
-        self.updateGui(self.warped, self.black, self.image)
+        self.update_gui(self.warped, self.black, self.image)
 
         if self.thresh_button.text() == 'Ball':
-            image_one = self.imageToQimage(self.image)
+            image_one = self.image_to_qimage(self.image)
         else:
-            image_one = self.imageToQimage(self.mask_3ch_rgb)
+            image_one = self.image_to_qimage(self.mask_3ch_rgb)
 
-        image_two = self.imageToQimage(self.warped)
-        image_three = self.imageToQimage(self.black)
+        image_two = self.image_to_qimage(self.warped)
+        image_three = self.image_to_qimage(self.black)
 
-        # Update the QtWidgets.QLabel Widget with all processed images
-        self.image_label_one.setPixmap(QtGui.QPixmap.fromImage(image_one))
-        self.image_label_two.setPixmap(QtGui.QPixmap.fromImage(image_two))
-        self.image_label_three.setPixmap(QtGui.QPixmap.fromImage(image_three))
+        # Update the QLabel Widget with all processed images
+        self.image_label_one.setPixmap(QPixmap.fromImage(image_one))
+        self.image_label_two.setPixmap(QPixmap.fromImage(image_two))
+        self.image_label_three.setPixmap(QPixmap.fromImage(image_three))
 
         final_time = time.time()
         self.update_widgets_time = final_time - initial_time
