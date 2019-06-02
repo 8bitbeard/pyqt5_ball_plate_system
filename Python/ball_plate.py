@@ -6,8 +6,8 @@ This is the main file of the Ball and Plate app
 
 import sys
 from PyQt5 import QtWidgets
-from arduino_communication.serial_communication import ArduinoCommunication
-from user_interface.gui import MainApp
+from src.workers.serial_communication import ArduinoCommunication
+from src.user_interface.gui import MainApp
 
 
 def main():

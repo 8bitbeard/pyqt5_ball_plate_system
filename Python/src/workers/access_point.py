@@ -13,8 +13,8 @@ class AccessPoint(QThread):
     Class to manage the thread to run the access point scripts
     """
 
-    START_SCRIPT = os.path.join("Python/resources", "start_ap.zsh")
-    STOP_SCRIPT = os.path.join("Python/resources", "stop_ap.zsh")
+    START_SCRIPT = os.path.join("Python/src/resources", "start_ap.zsh")
+    STOP_SCRIPT = os.path.join("Python/src/resources", "stop_ap.zsh")
 
     def __init__(self):
         QThread.__init__(self)
