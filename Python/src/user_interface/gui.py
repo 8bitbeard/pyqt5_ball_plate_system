@@ -474,36 +474,20 @@ class MainApp(QWidget, AppWidgets):
         """
         if self.start_button.text() != 'Start':
             if text == 'Webcam' and self.current_output != 0:
-                try:
-                    self.video_source.stop()
-                    self.video_source = WebcamVideoStream(src=0).start()
-                    self.current_output = 0
-                    ret, frame = self.video_source.read()
-                    assert ret
-                except AssertionError:
-                    print('Could not change to the selected camera, please check connection')
+                self.video_source.stop()
+                self.video_source = WebcamVideoStream(src=0).start()
+                self.current_output = 0
             elif text == 'USB Camera' and self.current_output != 1:
-                try:
-                    self.video_source.stop()
-                    self.video_source = WebcamVideoStream(src=1).start()
-                    self.current_output = 1
-                    ret, frame = self.video_source.read()
-                    assert ret
-                except AssertionError:
-                    print('Could not change to the selected camera, please check connection')
+                self.video_source.stop()
+                self.video_source = WebcamVideoStream(src=1).start()
+                self.current_output = 1
             elif text == 'IP Camera' and self.current_output != 2:
-                try:
-                    self.video_source.stop()
-                    website = 'http://' + self.ip_value + ':8080/video'
-                    self.video_source = WebcamVideoStream(src=website).start()
-                    self.current_output = 2
-                    ret, frame = self.video_source.read()
-                    assert ret
-                except AssertionError:
-                    print('Could not change to the selected camera, please check connection')
+                self.video_source.stop()
+                website = 'http://' + self.ip_value + ':8080/video'
+                self.video_source = WebcamVideoStream(src=website).start()
+                self.current_output = 2
             else:
                 print("This video is already selected")
-            self.start_button.setEnabled(True)
 
     def set_video_ip(self):
         """
@@ -659,7 +643,6 @@ class MainApp(QWidget, AppWidgets):
                 if os.name != 'posix':
                     self.access_point_button.setEnabled(True)
                 self.quit_button.setEnabled(True)
-                self.start_button.setEnabled(False)
             return
         frame = imutils.rotate(frame, 90)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

@@ -5,6 +5,7 @@ This is the main file of the Ball and Plate app
 # -*- coding: utf-8 -*-
 
 import sys
+
 from PyQt5 import QtWidgets
 from src.workers.serial_communication import ArduinoCommunication
 from src.user_interface.gui import MainApp
