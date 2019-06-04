@@ -95,12 +95,12 @@ class ArduinoCommunication(QThread):
         value_c = ["%+.2f" % (tuple_c[0]), "%+.3f" % (tuple_c[1]), "%+.3f" % (tuple_c[2])]
         value_d = ["%+.2f" % (tuple_d[0]), "%+.3f" % (tuple_d[1]), "%+.3f" % (tuple_d[2])]
 
-        result = value_a + '!' + value_a + '#' + \
-                 value_b + '$' + value_b + '%' + \
-                 value_c + '&' + value_c + '[' + value_c + ']' + \
-                 value_d + '{' + value_d + '}' + value_d + '@'
+        result = (value_a[0] + '!' + value_a[1] + '#' +
+                  value_b[0] + '$' + value_b[1] + '%' +
+                  value_c[0] + '&' + value_c[1] + '[' + value_c[2] + ']' +
+                  value_d[0] + '{' + value_d[1] + '}' + value_d[2] + '@')
 
-        # print("Sent:{}".format(result))
+        print("Sent:{}".format(result))
         self.data.write(result.encode())
 
     @staticmethod

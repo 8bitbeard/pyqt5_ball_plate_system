@@ -30,16 +30,7 @@ class MainApp(QWidget, AppWidgets):
     Initialize all constant variables
     """
     # Defining Wiget sizes
-    TEXT_SIZE = QSize(35, 15)
-    SMALL_TEXT_SIZE = QSize(26, 15)
-    LARGE_TEXT_SIZE = QSize(85, 15)
     IMAGE_SIZE = QSize(450, 450)
-    VIDEO_SIZE = QSize(450, 450)
-    GRAPH_SIZE = QSize(450, 210)
-    BUTTON_SIZE = QSize(120, 22)
-    SLIDER_SIZE = QSize(170, 15)
-    TEXT_BOX_SIZE = QSize(270, 25)
-    COMBO_BOX_SIZE = QSize(105, 25)
 
     # Physical model parameters
     BALL_DIAMETER = 0.0022
