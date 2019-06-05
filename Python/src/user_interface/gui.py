@@ -78,7 +78,7 @@ class MainApp(QWidget, AppWidgets):
         self.angle_x = 0
         self.angle_y = 0
 
-        self.ip_value = '192.168.12.186'
+        self.ip_value = '192.168.12.86'
 
         self.center_centimeters = (0, 0)
         self.setpoint_centimeters = (0, 0)
@@ -87,6 +87,34 @@ class MainApp(QWidget, AppWidgets):
         self.radius = 0
 
         self.constant_changed = False
+
+        self.start_time = None
+        self.video_source = None
+        self.previous_time = None
+        self.current_output = None
+        self.video_processing_time = None
+        self.arduino_communication_time = None
+        self.loop_time = None
+        self.update_widgets_time = None
+        self.data_buffer_one = None
+        self.data_buffer_two = None
+        self.data_buffer_three = None
+        self.data_buffer_four = None
+        self.data_buffer_five = None
+        self.data_buffer_six = None
+        self.x_axis = None
+        self.setpoint_pixels = None
+        self.image = None
+        self.mask_3ch_rgb = None
+        self.pts_list = None
+        self.black = None
+        self.warped = None
+        self.prediction = None
+        self.d_x = None
+        self.d_y = None
+        self.error_pixels = None
+        self.error_centimeters = None
+        self.coordinate_values = None
 
         self.access_point_server = AccessPoint()
         self.start_arduino_connection = ArduinoCommunication()

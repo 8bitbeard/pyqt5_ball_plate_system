@@ -21,26 +21,21 @@ class ArduinoCommunication(QThread):
     Class to manage the thread to do the arduino communication
     """
 
+    SAMPLE_TIME = 0.033
+
     arduino_data = pyqtSignal(tuple)
 
-    def __init__(self, is_thread_running=False, is_board_connected=False, sample_time=0.033):
+    def __init__(self, is_thread_running=False, is_board_connected=False):
         QThread.__init__(self)
+
         self.is_thread_running = is_thread_running
         self.is_board_connected = is_board_connected
-        self.sample_time = sample_time
-        self.constant_changed = False
 
         self.center_centimeters = (0, 0)
         self.setpoint_centimeters = (0, 0)
 
-        self.angle_x = 0
-        self.angle_y = 0
-        self.joystick_x = 0
-        self.joystick_y = 0
-
         self.arduino_ports = None
         self.data = None
-        self.arduino_communication_time = None
 
     def __del__(self):
         self.wait()
@@ -62,19 +57,19 @@ class ArduinoCommunication(QThread):
 
     def make_connection(self, application_object):
         """
-        Temporary
+        Method to make the connection between the thread and the main widget class
         """
         application_object.centers_signal.connect(self.get_data_from_application)
 
     def toggle_communication(self, application_object):
         """
-        Temporary
+        Method to make the connection between the thread and the main widget class
         """
         application_object.start_signal.connect(self.toggle_running_thread)
 
     def is_connected(self):
         """
-        Temporary
+        Method to return the status of the arduino board connection
         """
         return self.is_board_connected
 
@@ -95,27 +90,21 @@ class ArduinoCommunication(QThread):
         """
         This function send all processed data to the arduino board
         """
-        value_a = "%+.2f" % (tuple_a[0])
-        value_b = "%+.2f" % (tuple_a[1])
-        value_c = "%+.2f" % (tuple_b[0])
-        value_d = "%+.2f" % (tuple_b[1])
-        value_e = "%+.3f" % (tuple_c[0])
-        value_f = "%+.3f" % (tuple_c[1])
-        value_g = "%+.3f" % (tuple_c[2])
-        value_h = "%+.3f" % (tuple_d[0])
-        value_i = "%+.3f" % (tuple_d[1])
-        value_j = "%+.3f" % (tuple_d[2])
-        if self.constant_changed:
-            result = value_a + '!' + value_b + '#' + value_c + '$' + value_d + '%' + value_e + '&' \
-                     + value_f + '[' + value_g + ']' + value_h + '{' + value_i + '}' + value_j + '*'
-        else:
-            result = value_a + '!' + value_b + '#' + value_c + '$' + value_d + '%' + value_e + '&' \
-                     + value_f + '[' + value_g + ']' + value_h + '{' + value_i + '}' + value_j + '@'
-        self.constant_changed = False
+        value_a = ["%+.2f" % (tuple_a[0]), "%+.2f" % (tuple_a[1])]
+        value_b = ["%+.2f" % (tuple_b[0]), "%+.2f" % (tuple_b[1])]
+        value_c = ["%+.2f" % (tuple_c[0]), "%+.3f" % (tuple_c[1]), "%+.3f" % (tuple_c[2])]
+        value_d = ["%+.2f" % (tuple_d[0]), "%+.3f" % (tuple_d[1]), "%+.3f" % (tuple_d[2])]
+
+        result = value_a + '!' + value_a + '#' + \
+                 value_b + '$' + value_b + '%' + \
+                 value_c + '&' + value_c + '[' + value_c + ']' + \
+                 value_d + '{' + value_d + '}' + value_d + '@'
+
         # print("Sent:{}".format(result))
         self.data.write(result.encode())
 
-    def dummydata(self):
+    @staticmethod
+    def dummydata():
         """
         This function simulates the data received from the Arduino Board
         """
@@ -135,7 +124,7 @@ class ArduinoCommunication(QThread):
 
     def run(self):
         """
-        Method to start the arduino communication thread
+        Method to start the communication with the arduino board
         """
         self.arduino_ports = [p.device for p in serial.tools.list_ports.comports() if 'Arduino' in p.description]
         if not self.arduino_ports:
@@ -152,19 +141,20 @@ class ArduinoCommunication(QThread):
         """
         Method with the main data communicaton loop
         """
+        angle_x = 0
+        angle_y = 0
+        joystick_x = 0
+        joystick_y = 0
         while self.is_board_connected:
-
             initial_time = time.time()
             if self.is_thread_running:
                 self.send_data_to_arduino(self.center_centimeters, self.setpoint_centimeters, (0, 0, 0), (0, 0, 0))
                 while self.data.in_waiting:
-                    self.angle_x, self.angle_y, self.joystick_x, self.joystick_y = self.get_data_from_arduino()
+                    angle_x, angle_y, joystick_x, joystick_y = self.get_data_from_arduino()
             final_time = time.time()
             total_time = final_time - initial_time
 
-            time.sleep(abs(self.sample_time - total_time))
+            time.sleep(abs(self.SAMPLE_TIME - total_time))
 
-            self.arduino_communication_time = time.time() - initial_time
-            self.arduino_data.emit((self.angle_x, self.angle_y,
-                                    self.joystick_x, self.joystick_y,
-                                    self.arduino_communication_time))
+            arduino_communication_time = time.time() - initial_time
+            self.arduino_data.emit((angle_x, angle_y, joystick_x, joystick_y, arduino_communication_time))
