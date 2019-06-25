@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-This file implements te ArduinoCommunication thread, responsible
-for all the dat transfer between the application and the arduino
-board
+This file implements te ArduinoCommunication thread
+
+This thread is responsible for all the data communication
+between the application and the Arduino Mega board
 """
 
 import time
@@ -83,7 +84,7 @@ class ArduinoCommunication(QThread):
         angle_y = float(data_array[1])
         joystick_x = float(data_array[2])
         joystick_y = float(data_array[3])
-        # print("Received: {}".format(data_array))
+        print("Received: {}".format(data_array))
         return (angle_x, angle_y, joystick_x, joystick_y)
 
     def send_data_to_arduino(self, tuple_a, tuple_b, tuple_c, tuple_d):

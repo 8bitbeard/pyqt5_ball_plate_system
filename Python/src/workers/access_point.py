@@ -46,7 +46,6 @@ class AccessPoint(QThread):
         """
         Method to pass the start ap script to the run_script static method
         """
-        print(self.START_SCRIPT)
         self.run_script(self.START_SCRIPT)
         self.thread_status = True
 
@@ -54,6 +53,5 @@ class AccessPoint(QThread):
         """
         Method to pass the stop ap script to the run_script static method
         """
-        print(self.STOP_SCRIPT)
         self.run_script(self.STOP_SCRIPT)
         self.thread_status = False
