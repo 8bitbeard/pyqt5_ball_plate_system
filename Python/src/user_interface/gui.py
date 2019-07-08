@@ -1,8 +1,9 @@
-"""
-This is the app main file
-"""
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
+
+"""
+This file contains the main widget class and all the methods related to it.
+"""
 
 import math
 import time
@@ -289,7 +290,6 @@ class MainApp(QWidget, AppWidgets):
         my_plot_two = self.graph_two.addPlot(title='X - Set Point / Current Point')
         my_plot_three = self.graph_three.addPlot(title='Y - Set Point / Current Point')
 
-        # self._interval = int(sample_interval*1000)
         bufsize = int(sample_window/sample_interval)
         self.data_buffer_one = deque([0.0]*bufsize, bufsize)
         self.data_buffer_two = deque([0.0]*bufsize, bufsize)
@@ -399,14 +399,12 @@ class MainApp(QWidget, AppWidgets):
         This function handles the arduino serial connection using the QThread method
         """
         if self.serial_connect_button.text() == 'Serial connect' and self.start_button.text() != 'Pause':
-            # self.start_arduino_connection = ArduinoComunication()
             self.start_arduino_connection.start()
             self.start_arduino_connection.arduino_data.connect(self.get_data_from_arduino)
             self.serial_connect_button.setText("Serial disconnect")
 
         elif self.serial_connect_button.text() == 'Serial disconnect':
             self.start_arduino_connection.stop()
-            # del self.start_arduino_connection
             self.serial_connect_button.setText("Serial connect")
 
     def toggle_access_point(self):

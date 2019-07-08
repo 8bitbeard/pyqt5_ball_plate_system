@@ -1,8 +1,9 @@
+# !/usr/bin/python
+# -*- coding: utf-8 -*-
+
 """
 This is the main file of the Ball and Plate app
 """
-# !/usr/bin/python
-# -*- coding: utf-8 -*-
 
 import sys
 

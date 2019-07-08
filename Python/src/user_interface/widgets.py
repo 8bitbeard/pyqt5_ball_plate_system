@@ -305,5 +305,3 @@ class AppWidgets(object):
         self.main_layout.addLayout(self.top_layout)
         self.main_layout.addLayout(self.mid_layout)
         self.main_layout.addLayout(self.bot_layout)
-        # Defining the widget layout as the main layout
-        # self.setLayout(self.main_layout)
