@@ -12,9 +12,10 @@ https://github.com/oblique/create_ap
 """
 
 import subprocess
-import os.path
 
 from PyQt5.QtCore import QThread
+
+from src.utils import utils
 
 
 class AccessPoint(QThread):
@@ -22,8 +23,8 @@ class AccessPoint(QThread):
     Class to manage the thread to run the access point scripts
     """
 
-    START_SCRIPT = os.path.join('Python/src/resources', 'start_ap.zsh')
-    STOP_SCRIPT = os.path.join('Python/src/resources', 'stop_ap.zsh')
+    START_SCRIPT = utils.get_absolute_resource_path("resources/scripts/start_ap.zsh")
+    STOP_SCRIPT = utils.get_absolute_resource_path("resources/scripts/stop_ap.zsh")
 
     def __init__(self):
         QThread.__init__(self)
@@ -46,7 +47,6 @@ class AccessPoint(QThread):
         """
         Method to pass the start ap script to the run_script static method
         """
-        print(self.START_SCRIPT)
         self.run_script(self.START_SCRIPT)
         self.thread_status = True
 
@@ -54,6 +54,5 @@ class AccessPoint(QThread):
         """
         Method to pass the stop ap script to the run_script static method
         """
-        print(self.STOP_SCRIPT)
         self.run_script(self.STOP_SCRIPT)
         self.thread_status = False

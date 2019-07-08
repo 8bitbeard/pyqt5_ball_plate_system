@@ -100,7 +100,7 @@ class ArduinoCommunication(QThread):
                   value_c[0] + '&' + value_c[1] + '[' + value_c[2] + ']' +
                   value_d[0] + '{' + value_d[1] + '}' + value_d[2] + '@')
 
-        print("Sent:{}".format(result))
+        # print("Sent:{}".format(result))
         self.data.write(result.encode())
 
     @staticmethod
