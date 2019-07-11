@@ -129,6 +129,7 @@ class MainApp(QWidget, AppWidgets):
 
         # Connecting the inherited ip QLineEdit to its function
         self.camera_ip_textbox.setText(self.ip_value)
+        self.camera_ip_textbox.textChanged.connect(self.ip_value_change)
 
         # Connecting the inherited buttons to its functions
         self.start_button.clicked.connect(self.start_app)
@@ -506,11 +507,21 @@ class MainApp(QWidget, AppWidgets):
             else:
                 print("This video is already selected")
 
+    def ip_value_change(self, text):
+        """
+        Thi method handles the ip value change from the line edit
+        """
+        if text != self.ip_value:
+            self.camera_ip_textbox.setStyleSheet("color: red;")
+        else:
+            self.camera_ip_textbox.setStyleSheet("color: black;")
+
     def set_video_ip(self):
         """
         Method to set the ip adress of the remote camera
         """
         self.ip_value = self.camera_ip_textbox.text()
+        self.camera_ip_textbox.setStyleSheet("color: black;")
 
     def mode_change(self, text):
         """
