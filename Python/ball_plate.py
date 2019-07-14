@@ -17,8 +17,9 @@ def main():
     Main function to start the app
     """
     app = QtWidgets.QApplication(sys.argv)
+    screen_resolution = app.desktop().screenGeometry()
     arduino = ArduinoCommunication()
-    win = MainApp()
+    win = MainApp(screen_resolution)
     arduino.make_connection(win)
     arduino.toggle_communication(win)
     win.show()

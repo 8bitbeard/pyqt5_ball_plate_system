@@ -45,11 +45,16 @@ class MainApp(QWidget, AppWidgets):
     centers_signal = pyqtSignal(tuple, tuple)
     start_signal = pyqtSignal(bool)
 
-    def __init__(self, parent=None):
+    def __init__(self, screen_resolution, parent=None):
         """
         This is the main app class
         """
         super(MainApp, self).__init__(parent)
+
+        if screen_resolution.width() > screen_resolution.height():
+            self.size_ratio = screen_resolution.width() / 1400
+        else:
+            self.size_ratio = screen_resolution.height() / 780
 
         self.tick_high = 0
         self.step = 0.5
@@ -113,6 +118,7 @@ class MainApp(QWidget, AppWidgets):
         self.start_arduino_connection.make_connection(self)
         self.start_arduino_connection.toggle_communication(self)
 
+        self.set_widgets_size(ratio=self.size_ratio)
         self.setup_kalman_filter()
         self.setup_ui()
         self.setup_graphs()
@@ -799,6 +805,16 @@ class MainApp(QWidget, AppWidgets):
                            self.setpoint_centimeters[1], self.center_centimeters[1]])
 
         self.update_gui(self.warped, self.black, self.image)
+
+        self.image = cv2.resize(self.image, (int(self.VIDEO_SIZE.width() * self.size_ratio),
+                                             int(self.VIDEO_SIZE.height() * self.size_ratio)))
+        self.mask_3ch_rgb = cv2.resize(self.mask_3ch_rgb, (int(self.VIDEO_SIZE.width() * self.size_ratio),
+                                                           int(self.VIDEO_SIZE.height() * self.size_ratio)))
+        self.warped = cv2.resize(self.warped, (int(self.VIDEO_SIZE.width() * self.size_ratio),
+                                               int(self.VIDEO_SIZE.height() * self.size_ratio)))
+        self.black = cv2.resize(self.black, (int(self.VIDEO_SIZE.width() * self.size_ratio),
+                                             int(self.VIDEO_SIZE.height() * self.size_ratio)))
+
 
         if self.thresh_button.text() == 'Ball':
             image_one = self.image_to_qimage(self.image)
