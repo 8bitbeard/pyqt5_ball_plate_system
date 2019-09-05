@@ -1,0 +1,3 @@
+AllCops:
+  Exclude:
+    - ./ball_plate.spec

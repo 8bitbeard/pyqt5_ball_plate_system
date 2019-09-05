@@ -44,6 +44,7 @@ class MainApp(QWidget, AppWidgets):
 
     centers_signal = pyqtSignal(tuple, tuple)
     start_signal = pyqtSignal(bool)
+    close_signal = pyqtSignal(bool)
 
     def __init__(self, screen_resolution, parent=None):
         """
@@ -55,6 +56,8 @@ class MainApp(QWidget, AppWidgets):
             self.size_ratio = screen_resolution.width() / 1400
         else:
             self.size_ratio = screen_resolution.height() / 780
+
+        # self.size_ratio = 1
 
         self.tick_high = 0
         self.step = 0.5
@@ -488,6 +491,7 @@ class MainApp(QWidget, AppWidgets):
 
         if reply == QMessageBox.Yes:
             self.handle_close_event()
+            self.close_signal.emit(True)
             event.accept()
         else:
             event.ignore()
