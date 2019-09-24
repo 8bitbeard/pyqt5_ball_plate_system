@@ -102,9 +102,9 @@ class MainWindow(QMainWindow):
         settings_menu = QMenu('Settings', self)
 
         settings_menu_two = QMenu('Theme', self)
-        settings_theme_action_one = QAction('Default', self)
+        settings_theme_action_one = QAction('Light Mode', self)
         settings_theme_action_one.triggered.connect(lambda: self.toggle_dark_mode(False))
-        settings_theme_action_two = QAction('Dark mode', self)
+        settings_theme_action_two = QAction('Dark Mode', self)
         settings_theme_action_two.triggered.connect(lambda: self.toggle_dark_mode(True))
 
         settings_menu_three = QMenu('Resolution', self)

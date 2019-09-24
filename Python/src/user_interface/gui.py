@@ -50,14 +50,13 @@ class MainApp(QWidget, AppWidgets):
         """
         This is the main app class
         """
+        self.screen_resolution = screen_resolution
         super(MainApp, self).__init__(parent)
 
-        if screen_resolution.width() > screen_resolution.height():
-            self.size_ratio = screen_resolution.width() / 1400
+        if self.screen_resolution.width() > self.screen_resolution.height():
+            self.size_ratio = self.screen_resolution.width() / 1400
         else:
-            self.size_ratio = screen_resolution.height() / 780
-
-        # self.size_ratio = 1
+            self.size_ratio = self.screen_resolution.height() / 780
 
         self.tick_high = 0
         self.step = 0.5
